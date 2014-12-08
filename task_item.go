@@ -5,9 +5,9 @@ import (
 )
 
 type TaskItem struct {
-	ID          uint
-	Description string
-	CompletedAt time.Time
+	ID          uint      `json:"id,omitempty"`
+	Description string    `json:"description"`
+	CompletedAt time.Time `json:"completed_at,omitempty"`
 }
 
 func (task *TaskItem) IsComplete() bool {
