@@ -1,3 +1,5 @@
+default: test
+
 deps:
 	@go list -f '{{ join .Imports "\n"}}' | xargs -n1 go get -d
 

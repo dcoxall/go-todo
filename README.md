@@ -8,4 +8,4 @@ develop a Go web application.
 
 To run the test suite:
 
-    $ fig run app make test
+    $ fig run app make
