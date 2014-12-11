@@ -9,6 +9,7 @@ import (
 	"net/http/httptest"
 	"net/url"
 	"testing"
+	"time"
 )
 
 func testCreateRequest(
@@ -22,6 +23,21 @@ func testCreateRequest(
 	handler(response, request)
 	tests(response)
 }
+
+func testToogleRequest(
+	id uint,
+	handler http.HandlerFunc,
+	tests func(*httptest.ResponseRecorder)) {
+	request, _ := http.NewRequest(
+		"PUT",
+		fmt.Sprintf("/task?id=%d", id),
+		nil,
+	)
+	response := httptest.NewRecorder()
+	handler(response, request)
+	tests(response)
+}
+
 
 func TestAPICreateSuccess(t *testing.T) {
 	taskRepo := &TaskItemMemoryRepository{}
@@ -57,6 +73,40 @@ func TestAPICreateFailure(t *testing.T) {
 				t,
 				fmt.Sprintf("%s\n", taskRepo.SaveError),
 				response.Body.String(),
+			)
+		},
+	)
+}
+
+func TestAPIToogleSuccess(t *testing.T) {
+	taskRepo := &TaskItemMemoryRepository{}
+	api := TaskAPI{
+		TaskItemRepository: taskRepo,
+	}
+	task := TaskItem{
+		Description: "Example task item",
+	}
+	taskRepo.Save(&task)
+	testToogleRequest(
+		task.ID,
+		api.ToogleHandler,
+		func(response *httptest.ResponseRecorder) {
+			assert.Equal(t, response.Code, http.StatusAccepted)
+			updatedTask := TaskItem{}
+			err := json.Unmarshal(response.Body.Bytes(), &updatedTask)
+			assert.NoError(t, err)
+			assert.True(t, updatedTask.IsComplete())
+			assert.WithinDuration(
+				t,
+				time.Now(),
+				updatedTask.CompletedAt,
+				time.Duration(time.Second),
+			)
+			persistedTask, err := taskRepo.FindOne(updatedTask.ID)
+			assert.NoError(t, err)
+			assert.True(
+				t,
+				updatedTask.CompletedAt.Equal(persistedTask.CompletedAt),
 			)
 		},
 	)
