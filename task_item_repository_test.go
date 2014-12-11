@@ -17,7 +17,9 @@ func TestSavingTaskItem(t *testing.T) {
 		Description: "Task description",
 	}
 	assert.NoError(t, testTaskRepo().Save(&taskItem))
-	assert.NotNil(t, taskItem.ID)
+	assert.True(t, taskItem.ID > 0)
+	taskItem.Description = "Updated"
+	assert.NoError(t, testTaskRepo().Save(&taskItem))
 }
 
 func TestFindingTaskItem(t *testing.T) {

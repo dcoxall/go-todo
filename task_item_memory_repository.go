@@ -30,15 +30,34 @@ func (repo *TaskItemMemoryRepository) FindOne(id uint) (TaskItem, error) {
 }
 
 func (repo *TaskItemMemoryRepository) Save(task *TaskItem) error {
-	if task.ID > 0 {
-		return SaveTaskItemError
-	}
-
 	repo.lock.Lock()
 	defer repo.lock.Unlock()
 
-	atomic.AddUint32(&repo.nextID, 1)
-	task.ID = uint(atomic.LoadUint32(&repo.nextID))
+	if task.ID > 0 {
+		// Locate it and remove it from the list
+		// so we can replace it with the updated
+		// version below
+		removed := false
+		for i, memTask := range repo.persistedTasks {
+			if task.ID == memTask.ID {
+				repo.persistedTasks = append(
+					repo.persistedTasks[0:i],
+					repo.persistedTasks[i + 1:]...,
+				)
+				removed = true
+				break
+			}
+		}
+		if !removed {
+			return SaveTaskItemError
+		}
+	} else {
+		// Set the ID
+		atomic.AddUint32(&repo.nextID, 1)
+		task.ID = uint(atomic.LoadUint32(&repo.nextID))
+	}
+
+	// Add the task into the persisted list
 	repo.persistedTasks = append(repo.persistedTasks, *task)
 	return nil
 }
